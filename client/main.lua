@@ -1,8 +1,34 @@
-QBCore = exports['qb-core']:GetCoreObject()
-PlayerData = QBCore.Functions.GetPlayerData() -- Setting this for when you restart the resource in game
+ESX = nil
+
+Citizen.CreateThread(function()
+    while ESX == nil do
+        TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+        Citizen.Wait(0)
+    end
+
+    while ESX.GetPlayerData().job == nil do
+        Citizen.Wait(10)
+    end
+
+    PlayerData = ESX.GetPlayerData()
+
+    RegisterNetEvent('esx:playerLoaded')
+    AddEventHandler('esx:playerLoaded', function(xPlayer)
+        PlayerData = xPlayer
+    end)
+
+    RegisterNetEvent('esx:setJob')
+    AddEventHandler('esx:setJob', function(job)
+        PlayerData.job = job
+    end)
+
+end)
+
+isDead = false
 local inRadialMenu = false
 
 local jobIndex = nil
+local adminIndex = nil
 local vehicleIndex = nil
 
 local DynamicMenuItems = {}
@@ -57,7 +83,7 @@ end
 local function SetupJobMenu()
     local JobMenu = {
         id = 'jobinteractions',
-        title = 'Work',
+        title = 'Trabajo',
         icon = 'briefcase',
         items = {}
     }
@@ -75,59 +101,71 @@ local function SetupJobMenu()
     end
 end
 
-local function SetupVehicleMenu()
-    local VehicleMenu = {
-        id = 'vehicle',
-        title = 'Vehicle',
-        icon = 'car',
-        items = {}
+local function SetupAdminMenu()
+    local AdminMenu = {
+        id = 'adminmenu',
+        title = 'Menu de Administración',
+        icon = 'bussines-time',
+        items = Config.AdminMenu
     }
-
-    local ped = PlayerPedId()
-    local Vehicle = GetVehiclePedIsIn(ped) ~= 0 and GetVehiclePedIsIn(ped) or getNearestVeh()
-    if Vehicle ~= 0 then
-        VehicleMenu.items[#VehicleMenu.items+1] = Config.VehicleDoors
-        if Config.EnableExtraMenu then VehicleMenu.items[#VehicleMenu.items+1] = Config.VehicleExtras end
-
-        if IsPedInAnyVehicle(ped) then
-            local seatIndex = #VehicleMenu.items+1
-            VehicleMenu.items[seatIndex] = deepcopy(Config.VehicleSeats)
-
-            local seatTable = {
-                [1] = Lang:t("options.driver_seat"),
-                [2] = Lang:t("options.passenger_seat"),
-                [3] = Lang:t("options.rear_left_seat"),
-                [4] = Lang:t("options.rear_right_seat"),
-            }
-
-            local AmountOfSeats = GetVehicleModelNumberOfSeats(GetEntityModel(Vehicle))
-            for i = 1, AmountOfSeats do
-                local newIndex = #VehicleMenu.items[seatIndex].items+1
-                VehicleMenu.items[seatIndex].items[newIndex] = {
-                    id = i - 2,
-                    title = seatTable[i] or Lang:t("options.other_seats"),
-                    icon = 'caret-up',
-                    type = 'client',
-                    event = 'qb-radialmenu:client:ChangeSeat',
-                    shouldClose = false,
-                }
-            end
-        end
-    end
-
-    if #VehicleMenu.items == 0 then
-        if vehicleIndex then
-            RemoveOption(vehicleIndex)
-            vehicleIndex = nil
-        end
-    else
-        vehicleIndex = AddOption(VehicleMenu, vehicleIndex)
+    if PlayerData.isAdmin then
+        adminIndex = AddOption(AdminMenu, adminIndex)
     end
 end
 
+--local function SetupVehicleMenu()
+--    local VehicleMenu = {
+--        id = 'vehicle',
+--        title = 'Vehicle',
+--        icon = 'car',
+--        items = {}
+--    }
+--
+--    local ped = PlayerPedId()
+--    local Vehicle = GetVehiclePedIsIn(ped) ~= 0 and GetVehiclePedIsIn(ped) or getNearestVeh()
+--    if Vehicle ~= 0 then
+--        VehicleMenu.items[#VehicleMenu.items+1] = Config.VehicleDoors
+--        if Config.EnableExtraMenu then VehicleMenu.items[#VehicleMenu.items+1] = Config.VehicleExtras end
+--
+--        if IsPedInAnyVehicle(ped) then
+--            local seatIndex = #VehicleMenu.items+1
+--            VehicleMenu.items[seatIndex] = deepcopy(Config.VehicleSeats)
+--
+--            local seatTable = {
+--                [1] = traslatear("options.driver_seat"),
+--                [2] = traslatear("options.passenger_seat"),
+--                [3] = traslatear("options.rear_left_seat"),
+--                [4] = traslatear("options.rear_right_seat"),
+--            }
+--
+--            local AmountOfSeats = GetVehicleModelNumberOfSeats(GetEntityModel(Vehicle))
+--            for i = 1, AmountOfSeats do
+--                local newIndex = #VehicleMenu.items[seatIndex].items+1
+--                VehicleMenu.items[seatIndex].items[newIndex] = {
+--                    id = i - 2,
+--                    title = seatTable[i] or traslatear("options.other_seats"),
+--                    icon = 'caret-up',
+--                    type = 'client',
+--                    event = 'qb-radialmenu:client:ChangeSeat',
+--                    shouldClose = false,
+--                }
+--            end
+--        end
+--    end
+--
+--    if #VehicleMenu.items == 0 then
+--        if vehicleIndex then
+--            RemoveOption(vehicleIndex)
+--            vehicleIndex = nil
+--        end
+--    else
+--        vehicleIndex = AddOption(VehicleMenu, vehicleIndex)
+--    end
+--end
+
 local function SetupSubItems()
     SetupJobMenu()
-    SetupVehicleMenu()
+--    SetupVehicleMenu()
 end
 
 local function selectOption(t, t2)
@@ -148,8 +186,16 @@ local function IsPoliceOrEMS()
     return (PlayerData.job.name == "police" or PlayerData.job.name == "ambulance")
 end
 
+AddEventHandler('esx:onPlayerSpawn', function()
+    isDead = false
+end)
+
+AddEventHandler('esx:onPlayerDeath', function(data)
+    isDead = true
+end)
+
 local function IsDowned()
-    return (PlayerData.metadata["isdead"] or PlayerData.metadata["inlaststand"])
+    return isDead
 end
 
 local function SetupRadialMenu()
@@ -158,7 +204,7 @@ local function SetupRadialMenu()
             FinalMenuItems = {
                 [1] = {
                     id = 'emergencybutton2',
-                    title = Lang:t("options.emergency_button"),
+                    title = traslatear("options.emergency_button"),
                     icon = 'exclamation-circle',
                     type = 'client',
                     event = 'police:client:SendPoliceEmergencyAlert',
@@ -200,34 +246,25 @@ end
 -- Command
 
 RegisterCommand('radialmenu', function()
-    if ((IsDowned() and IsPoliceOrEMS()) or not IsDowned()) and not PlayerData.metadata["ishandcuffed"] and not IsPauseMenuActive() and not inRadialMenu then
+    if ((IsDowned() and IsPoliceOrEMS()) or not IsDowned()) and not IsPedCuffed(ped) and not IsPauseMenuActive() and not inRadialMenu then
         setRadialState(true, true)
         SetCursorLocation(0.5, 0.5)
     end
 end)
 
-RegisterKeyMapping('radialmenu', Lang:t("general.command_description"), 'keyboard', 'F1')
+RegisterKeyMapping('radialmenu', traslatear("general.command_description"), 'keyboard', 'G')
 
 -- Events
 
--- Sets the metadata when the player spawns
-RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
-    PlayerData = QBCore.Functions.GetPlayerData()
-end)
 
--- Sets the playerdata to an empty table when the player has quit or did /logout
-RegisterNetEvent('QBCore:Client:OnPlayerUnload', function()
-    PlayerData = {}
-end)
-
--- This will update all the PlayerData that doesn't get updated with a specific event other than this like the metadata
-RegisterNetEvent('QBCore:Player:SetPlayerData', function(val)
-    PlayerData = val
-end)
 
 RegisterNetEvent('qb-radialmenu:client:noPlayers', function()
-    QBCore.Functions.Notify(Lang:t("error.no_people_nearby"), 'error', 2500)
+    ESX.ShowHelpNotification(traslatear("error.no_people_nearby"), 'error', 2500)
 end)
+
+--RegisterNetEvent('qb-radialmenu:abririnventario', function()
+--    print("hemos llegao")
+--end)
 
 RegisterNetEvent('qb-radialmenu:client:openDoor', function(data)
     local string = data.id
@@ -259,7 +296,7 @@ RegisterNetEvent('qb-radialmenu:client:openDoor', function(data)
             end
         end
     else
-        QBCore.Functions.Notify(Lang:t("error.no_vehicle_found"), 'error', 2500)
+        ESX.ShowHelpNotification(traslatear("error.no_vehicle_found"), 'error', 2500)
     end
 end)
 
@@ -275,16 +312,16 @@ RegisterNetEvent('qb-radialmenu:client:setExtra', function(data)
             if DoesExtraExist(veh, extra) then
                 if IsVehicleExtraTurnedOn(veh, extra) then
                     SetVehicleExtra(veh, extra, 1)
-                    QBCore.Functions.Notify(Lang:t("error.extra_deactivated", {extra = extra}), 'error', 2500)
+                    ESX.ShowHelpNotification(traslatear("error.extra_deactivated", {extra = extra}), 'error', 2500)
                 else
                     SetVehicleExtra(veh, extra, 0)
-                    QBCore.Functions.Notify(Lang:t("success.extra_activated", {extra = extra}), 'success', 2500)
+                    ESX.ShowHelpNotification(traslatear("success.extra_activated", {extra = extra}), 'success', 2500)
                 end
             else
-                QBCore.Functions.Notify(Lang:t("error.extra_not_present", {extra = extra}), 'error', 2500)
+                ESX.ShowHelpNotification(traslatear("error.extra_not_present", {extra = extra}), 'error', 2500)
             end
         else
-            QBCore.Functions.Notify(Lang:t("error.not_driver"), 'error', 2500)
+            ESX.ShowHelpNotification(traslatear("error.not_driver"), 'error', 2500)
         end
     end
 end)
@@ -313,15 +350,15 @@ RegisterNetEvent('qb-radialmenu:client:ChangeSeat', function(data)
         if IsSeatFree then
             if kmh <= 100.0 then
                 SetPedIntoVehicle(PlayerPedId(), Veh, data.id)
-                QBCore.Functions.Notify(Lang:t("info.switched_seats", {seat = data.title}))
+                ESX.ShowHelpNotification(traslatear("info.switched_seats", {seat = data.title}))
             else
-                QBCore.Functions.Notify(Lang:t("error.vehicle_driving_fast"), 'error')
+                ESX.ShowHelpNotification(traslatear("error.vehicle_driving_fast"), 'error')
             end
         else
-            QBCore.Functions.Notify(Lang:t("error.seat_occupied"), 'error')
+            ESX.ShowHelpNotification(traslatear("error.seat_occupied"), 'error')
         end
     else
-        QBCore.Functions.Notify(Lang:t("error.race_harness_on"), 'error')
+        ESX.ShowHelpNotification(traslatear("error.race_harness_on"), 'error')
     end
 end)
 
