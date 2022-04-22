@@ -46,29 +46,61 @@ Config.MenuItems = {
                 items = {
                     {
                         id = 'esposarlibre',
-                        title = 'Libre',
-                        icon = 'car-side',
+                        title = 'Esposar (débil)',
+                        icon = 'handcuffs',
                         type = 'client',
                         event = 'qb-radialmenu:chequeo',
                         shouldClose = true
                     },
                     {
                         id = 'esposarinmovil',
-                        title = 'Inmovilizado',
-                        icon = 'car-side',
+                        title = 'Esposar (inmóv.)',
+                        icon = 'handcuffs',
                         type = 'client',
                         event = 'qb-radialmenu:chequeo',
                         shouldClose = true
                     },
                     {
-                        id = 'esposarsoltar',
+                        id = 'soltar',
                         title = 'Soltar',
+                        icon = 'dove',
+                        type = 'client',
+                        event = 'police:client:PutPlayerInVehicle',
+                        shouldClose = true
+                    },
+                    {
+                        id = 'Cachear',
+                        title = 'Cachear',
                         icon = 'car-side',
                         type = 'client',
                         event = 'police:client:PutPlayerInVehicle',
                         shouldClose = true
-                    }   
-                },
+                    },
+                    {
+                        id = 'Escoltar/soltar',
+                        title = 'Escoltar',
+                        icon = 'car-side',
+                        type = 'command',
+                        event = '+grab',
+                        shouldClose = true
+                    },
+                    {
+                        id = 'meter_en_veh"',
+                        title = 'Meter en vehículo',
+                        icon = 'car-side',
+                        type = 'command',
+                        event = '+putcar',
+                        shouldClose = true
+                    },
+                    {
+                        id = 'sacar_de_veh"',
+                        title = 'Meter en vehículo',
+                        icon = 'car-side',
+                        type = 'command',
+                        event = '+putcar',
+                        shouldClose = true
+                    },
+                },                                                                                                                                                                 
             },{
                 id = 'bolsacabeza',
                 title = 'Bolsa en la cabeza (poner/quitar)',
@@ -640,14 +672,69 @@ Config.JobInteractions = {
     --    }
     --},
     ["mechanic"] = {
---        {
---            id = 'towvehicle',
---            title = 'Tow vehicle',
---            icon = 'truck-pickup',
---            type = 'client',
---            event = 'qb-tow:client:TowVehicle',
---            shouldClose = true
---        },
+        {
+            id = 'veh_body_repair',
+            title = 'Reparar carrocería',
+            icon = 'truck-pickup',
+            type = 'client',
+            event = 't1ger_mechanicjob:repararcuerpo',
+            shouldClose = true
+        },
+        {
+            id = 'repair_health_parts',
+            title = 'Reparar partes dañadas',
+            icon = 'truck-pickup',
+            type = 'client',
+            event = 't1ger_mechanicjob:repararpartes',
+            shouldClose = true
+        },
+        {
+            id = 'veh_engine_repair',
+            title = 'Reparar motor',
+            icon = 'truck-pickup',
+            type = 'client',
+            event = 't1ger_mechanicjob:repararmotor',
+            shouldClose = true
+        },
+        {
+            id = 'use_car_jack',
+            title = 'Usar Gato',
+            icon = 'truck-pickup',
+            type = 'client',
+            event = 't1ger_mechanicjob:usarcarjack',
+            shouldClose = true
+        },
+        {
+            id = 'prop_emotes',
+            title = 'Props',
+            icon = 'truck-pickup',
+            type = 'client',
+            event = 't1ger_mechanicjob:propsguille',
+            shouldClose = true
+        },
+        {
+            id = 'npc_jobs',
+            title = 'Trabajos de NPC',
+            icon = 'truck-pickup',
+            items = {
+                {
+                    id = 'findcall',
+                    title = 'Encontrar un trabajo',
+                    icon = 'truck-pickup',
+                    type = 'client',
+                    event = 't1ger_mechanicjob:npcfind',
+                    shouldClose = true
+                },
+                {
+                    id = 'cancelcall',
+                    title = 'Cancelar trabajo',
+                    icon = 'truck-pickup',
+                    type = 'client',
+                    event = 't1ger_mechanicjob:npccall',
+                    shouldClose = true
+                }
+            }
+        },
         Config.VehicleExtras             
     },
     ["police"] = {
@@ -834,11 +921,11 @@ Config.AdminMenu = {
         shouldClose = true 
     },
     {
-        id = 'verinventario',
+        id = 'abririnventario',
         title = 'Ver Inventario',
         icon = 'hotdog',
         type = 'command',
-        event = 'verinventario',
+        event = 'abririnventario',
         shouldClose = true 
     },
     {
@@ -1048,3 +1135,41 @@ Config.ExtraCommands = {
         OffsetY = 0.2
     }
 }
+
+ AddEventHandler("qb-radialmenu:chequeo", function(action)
+	print(json.encode(ction))
+	local closestPlayer, distance = ESX.Game.GetClosestPlayer()
+	local manosArriba = false
+	if IsPlayerDead(closestPlayer) or IsEntityPlayingAnim(pPed, "missminuteman_1ig_2", "handsup_enter", 3) or IsEntityPlayingAnim(pPed, "missminuteman_1ig_2", "handsup_base", 3) or IsEntityPlayingAnim(pPed, "random@arrests@busted", "idle_a", 3) or IsPedRagdoll(pPed) then
+		manosArriba = true
+		print("manos arriba")
+	end
+	if action == "esposarlibre" then
+		TriggerEvent('tkt-cuffs:scuffplayer')
+	elseif action == "esposarinmovil" then
+		TriggerEvent('tkt-cuffs:cuffplayer')
+	elseif action == "soltar" then
+		TriggerEvent('tkt-cuffs:uncuffplayer')
+	elseif action == "Cachear" then
+		TriggerEvent('tkt-cuffs:search')
+	end
+ end)
+ 
+ 
+RegisterCommand("abririnventario", function()
+	if PlayerData and PlayerData.isAdmin then
+		Citizen.Wait(100)
+		while IsDisabledControlPressed(0, 47) or IsControlPressed(0, 47) do
+			Citizen.Wait(5)
+		end
+		local keyboard, id = exports["nh-keyboard"]:Keyboard({
+			header = "Abrir inventario de un jugador",
+			rows = {
+				"Escribe la ID"
+			}
+		})
+		if not keyboard then return end
+		if not tonumber(id) then return end
+		ExecuteCommand("openinventory " .. id)
+	end
+end)

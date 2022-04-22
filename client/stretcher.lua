@@ -55,21 +55,8 @@ local function loadAnim(dict)
 end
 
 local function GetClosestPlayer()
-    local closestPlayers = QBCore.Functions.GetPlayersFromCoords()
-    local closestDistance = -1
-    local closestPlayer = -1
-    local coords = GetEntityCoords(PlayerPedId())
-    local player = PlayerId()
-    for i=1, #closestPlayers, 1 do
-        if closestPlayers[i] ~= player then
-            local pos = GetEntityCoords(GetPlayerPed(closestPlayers[i]))
-            local distance = #(pos - coords)
-            if closestDistance == -1 or closestDistance > distance then
-                closestPlayer = closestPlayers[i]
-                closestDistance = distance
-            end
-        end
-	end
+    local closestPlayer, closestDistance = ESX.Game.GetClosestPlayer()
+
 	return closestPlayer, closestDistance
 end
 

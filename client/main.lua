@@ -104,7 +104,7 @@ end
 local function SetupAdminMenu()
     local AdminMenu = {
         id = 'adminmenu',
-        title = 'Menu de Administración',
+        title = 'Administración',
         icon = 'bussines-time',
         items = Config.AdminMenu
     }
@@ -165,6 +165,7 @@ end
 
 local function SetupSubItems()
     SetupJobMenu()
+    SetupAdminMenu()
 --    SetupVehicleMenu()
 end
 
